@@ -5,7 +5,7 @@
 namespace waybar::modules {
 
 class Images : public ALabel {
-  public:
+ public:
   Images(const std::string&, const Json::Value&);
   virtual ~Images() = default;
   auto update() -> void override;
