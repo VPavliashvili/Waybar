@@ -1,6 +1,7 @@
 #include "factory.hpp"
 
 #include "bar.hpp"
+#include "modules/images.hpp"
 
 #if defined(HAVE_CHRONO_TIMEZONES) || defined(HAVE_LIBDATE)
 #include "modules/clock.hpp"
@@ -237,6 +238,9 @@ waybar::AModule* waybar::Factory::makeModule(const std::string& name,
     }
     if (ref == "image") {
       return new waybar::modules::Image(id, config_[name]);
+    }
+    if (ref == "images") {
+      return new waybar::modules::Images(id, config_[name]);
     }
 #ifdef HAVE_DBUSMENU
     if (ref == "tray") {
