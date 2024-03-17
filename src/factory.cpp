@@ -1,7 +1,6 @@
 #include "factory.hpp"
 
 #include "bar.hpp"
-#include "modules/images.hpp"
 
 #if defined(HAVE_CHRONO_TIMEZONES) || defined(HAVE_LIBDATE)
 #include "modules/clock.hpp"
@@ -107,6 +106,7 @@
 #include "modules/cffi.hpp"
 #include "modules/custom.hpp"
 #include "modules/image.hpp"
+#include "modules/images.hpp"
 #include "modules/temperature.hpp"
 #include "modules/user.hpp"
 
