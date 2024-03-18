@@ -28,6 +28,7 @@ class Images : public AModule {
 
  private:
   void delayWorker();
+  void setEntries(const Json::Value&);
 
   Json::Value config_;
   Gtk::Box box_;

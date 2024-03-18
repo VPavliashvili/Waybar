@@ -52,15 +52,7 @@ auto waybar::modules::Images::update() -> void {
   }
 
   if (!config_["entries"].empty()) {
-    for (unsigned int i = 0; i < config_["entries"].size(); i++) {
-      auto cur = config_["entries"][i];
-      if (!cur.isString() || !Glib::file_test(cur.asString(), Glib::FILE_TEST_EXISTS)) {
-        spdlog::error("invalid input in images config -> {}", config_["entries"]);
-        return;
-      }
-      auto path = cur.asString();
-      entries_.push_back(path);
-    }
+    setEntries(config_["entries"]);
   } else if (!config_["exec"].empty()) {
     auto exec = util::command::exec(config_["exec"].asString(), "");
     Json::Value as_json;
@@ -71,15 +63,7 @@ auto waybar::modules::Images::update() -> void {
       return;
     }
 
-    for (unsigned int i = 0; i < as_json.size(); i++) {
-      auto cur = as_json[i];
-      if (!cur.isString() || !Glib::file_test(cur.asString(), Glib::FILE_TEST_EXISTS)) {
-        spdlog::error("invalid entry in exec array -> {}", config_["entries"]);
-        return;
-      }
-      auto path = cur.asString();
-      entries_.push_back(path);
-    }
+    setEntries(as_json);
   } else {
     spdlog::error("no image files provded in config");
     return;
@@ -110,3 +94,15 @@ auto waybar::modules::Images::update() -> void {
 
   AModule::update();
 };
+
+void waybar::modules::Images::setEntries(const Json::Value &cfg_input) {
+  for (unsigned int i = 0; i < cfg_input.size(); i++) {
+    auto cur = cfg_input[i];
+    if (!cur.isString() || !Glib::file_test(cur.asString(), Glib::FILE_TEST_EXISTS)) {
+      spdlog::error("invalid input in images config -> {}", cfg_input);
+      return;
+    }
+    auto path = cur.asString();
+    entries_.push_back(path);
+  }
+}
