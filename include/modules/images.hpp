@@ -6,6 +6,7 @@
 
 #include <csignal>
 #include <string>
+#include <utility>
 
 #include "ALabel.hpp"
 #include "AModule.hpp"
@@ -28,13 +29,14 @@ class Images : public AModule {
 
  private:
   void delayWorker();
-  void setEntries(const Json::Value&);
+  void setEntries(const Json::Value &);
 
   Json::Value config_;
   Gtk::Box box_;
-  std::vector<std::string> entries_;
+  std::vector<std::pair<std::string, std::string>> entries_;
   int size_;
   int interval_;
+  bool is_exec_used_;
 
   util::SleeperThread thread_;
 };

@@ -19,7 +19,16 @@ waybar::modules::Images::Images(const std::string &id, const Json::Value &config
     interval_ = INT_MAX;
   }
 
-  spdlog::info("Images ctor executed");
+  // so exec script will return images data instead of entries
+  if (!config_["exec"].empty()) {
+    is_exec_used_ = true;
+  } else if (!config_["entries"].empty()) {
+    setEntries(config_["entries"]);
+    is_exec_used_ = false;
+  } else {
+    spdlog::error("no image files provded in config");
+    return;
+  }
 
   delayWorker();
 };
@@ -41,6 +50,7 @@ void waybar::modules::Images::refresh(int sig) {
 auto waybar::modules::Images::update() -> void {
   spdlog::info("update function run");
 
+  // clear box_, previous css classes and memory
   if (box_.get_children().size() > 0) {
     auto children = box_.get_children();
     for (auto child : children) {
@@ -48,12 +58,15 @@ auto waybar::modules::Images::update() -> void {
       spdlog::info("child removed with name -> {}", std::string(child->get_name()));
       delete child;
     }
+
+    for (auto entry : entries_) {
+      box_.get_style_context()->remove_class(entry.second);
+    }
     entries_.clear();
   }
 
-  if (!config_["entries"].empty()) {
-    setEntries(config_["entries"]);
-  } else if (!config_["exec"].empty()) {
+  // set new images from config script
+  if (is_exec_used_) {
     auto exec = util::command::exec(config_["exec"].asString(), "");
     Json::Value as_json;
     Json::Reader reader;
@@ -64,20 +77,21 @@ auto waybar::modules::Images::update() -> void {
     }
 
     setEntries(as_json);
-  } else {
-    spdlog::error("no image files provded in config");
-    return;
   }
 
-  for (auto path : entries_) {
+  // draw
+  for (auto entry : entries_) {
+    auto path = entry.first;
+    auto status = entry.second;
+
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
     pixbuf = Gdk::Pixbuf::create_from_file(path, size_, size_);
     Gtk::Image *image = new Gtk::Image();
     image->set_name(path);
+    image->get_style_context()->add_class(status);
     box_.pack_start(*image);
     auto name = std::string(image->get_name());
-    spdlog::info("box packed with image -> {}, and its size is {}", name,
-                 box_.get_children().size());
+    spdlog::info("added image -> {}:{}", status, path);
 
     if (pixbuf) {
       image->set(pixbuf);
@@ -90,6 +104,11 @@ auto waybar::modules::Images::update() -> void {
     }
   }
 
+  auto ctx = box_.get_style_context();
+  for (auto c : ctx->list_classes()) {
+    spdlog::info("has css class -> {}", std::string(c));
+  }
+
   // spdlog::info("children count: {}", box_.get_children().size());
 
   AModule::update();
@@ -97,12 +116,13 @@ auto waybar::modules::Images::update() -> void {
 
 void waybar::modules::Images::setEntries(const Json::Value &cfg_input) {
   for (unsigned int i = 0; i < cfg_input.size(); i++) {
-    auto cur = cfg_input[i];
-    if (!cur.isString() || !Glib::file_test(cur.asString(), Glib::FILE_TEST_EXISTS)) {
+    auto path = cfg_input[i]["path"];
+    auto status = cfg_input[i]["status"];
+    if (!path.isString() || !status.isString() ||
+        !Glib::file_test(path.asString(), Glib::FILE_TEST_EXISTS)) {
       spdlog::error("invalid input in images config -> {}", cfg_input);
       return;
     }
-    auto path = cur.asString();
-    entries_.push_back(path);
+    entries_.push_back(std::make_pair(path.asString(), status.asString()));
   }
 }
