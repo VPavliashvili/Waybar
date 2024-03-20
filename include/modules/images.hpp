@@ -36,7 +36,6 @@ class Images : public AModule {
   std::vector<std::pair<std::string, std::string>> entries_;
   int size_;
   int interval_;
-  bool is_exec_used_;
 
   util::SleeperThread thread_;
 };

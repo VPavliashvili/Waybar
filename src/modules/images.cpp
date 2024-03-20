@@ -19,17 +19,6 @@ waybar::modules::Images::Images(const std::string &id, const Json::Value &config
     interval_ = INT_MAX;
   }
 
-  // so exec script will return images data instead of entries
-  if (!config_["exec"].empty()) {
-    is_exec_used_ = true;
-  } else if (!config_["entries"].empty()) {
-    setEntries(config_["entries"]);
-    is_exec_used_ = false;
-  } else {
-    spdlog::error("no image files provded in config");
-    return;
-  }
-
   delayWorker();
 };
 
@@ -43,6 +32,7 @@ void waybar::modules::Images::delayWorker() {
 
 void waybar::modules::Images::refresh(int sig) {
   if (sig == SIGRTMIN + config_["signal"].asInt()) {
+    spdlog::info("singal received {}", sig);
     thread_.wake_up();
   }
 }
@@ -59,14 +49,16 @@ auto waybar::modules::Images::update() -> void {
       delete child;
     }
 
-    for (auto entry : entries_) {
-      box_.get_style_context()->remove_class(entry.second);
-    }
+    // for (auto entry : entries_) {
+    //   box_.get_style_context()->remove_class(entry.second);
+    // }
     entries_.clear();
   }
 
   // set new images from config script
-  if (is_exec_used_) {
+  if (!config_["entries"].empty()) {
+    setEntries(config_["entries"]);
+  } else if (!config_["exec"].empty()) {
     auto exec = util::command::exec(config_["exec"].asString(), "");
     Json::Value as_json;
     Json::Reader reader;
@@ -77,6 +69,9 @@ auto waybar::modules::Images::update() -> void {
     }
 
     setEntries(as_json);
+  } else {
+    spdlog::error("no image files provded in config");
+    return;
   }
 
   // draw
@@ -102,11 +97,6 @@ auto waybar::modules::Images::update() -> void {
       image->hide();
       box_.get_style_context()->add_class("empty");
     }
-  }
-
-  auto ctx = box_.get_style_context();
-  for (auto c : ctx->list_classes()) {
-    spdlog::info("has css class -> {}", std::string(c));
   }
 
   // spdlog::info("children count: {}", box_.get_children().size());
