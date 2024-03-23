@@ -36,6 +36,8 @@ class Images : public AModule {
  private:
   void delayWorker();
   void setImagesData(const Json::Value &);
+  void draw();
+  void resetBoxAndMemory();
 
   Json::Value config_;
   Gtk::Box box_;

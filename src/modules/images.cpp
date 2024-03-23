@@ -42,14 +42,7 @@ auto waybar::modules::Images::update() -> void {
 
   // clear box_, previous css classes and memory
   if (box_.get_children().size() > 0) {
-    auto children = box_.get_children();
-    for (auto child : children) {
-      box_.remove(*child);
-      spdlog::info("child removed with name -> {}", std::string(child->get_name()));
-    }
-
-    images_data_.clear();
-    gtk_container_.clear();
+    resetBoxAndMemory();
   }
 
   // set new images from config script
@@ -71,7 +64,14 @@ auto waybar::modules::Images::update() -> void {
     return;
   }
 
-  // draw
+  draw();
+
+  // spdlog::info("children count: {}", box_.get_children().size());
+
+  AModule::update();
+};
+
+void waybar::modules::Images::draw() {
   for (unsigned int i = 0; i < images_data_.size(); i++) {
     gtk_container_.push_back(std::make_unique<Gtk::Image>());
     auto data = images_data_[i];
@@ -97,13 +97,8 @@ auto waybar::modules::Images::update() -> void {
       gtk_container_[i]->hide();
       box_.get_style_context()->add_class("empty");
     }
-    spdlog::info("img from ar -> {}", std::string(gtk_container_[i]->get_name()));
   }
-
-  spdlog::info("children count: {}", box_.get_children().size());
-
-  AModule::update();
-};
+}
 
 void waybar::modules::Images::setImagesData(const Json::Value &cfg_input) {
   for (unsigned int i = 0; i < cfg_input.size(); i++) {
@@ -125,4 +120,15 @@ void waybar::modules::Images::setImagesData(const Json::Value &cfg_input) {
 
     images_data_.push_back(data);
   }
+}
+
+void waybar::modules::Images::resetBoxAndMemory() {
+  auto children = box_.get_children();
+  for (auto child : children) {
+    box_.remove(*child);
+    spdlog::info("child removed with name -> {}", std::string(child->get_name()));
+  }
+
+  images_data_.clear();
+  gtk_container_.clear();
 }
