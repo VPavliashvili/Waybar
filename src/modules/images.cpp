@@ -52,12 +52,12 @@ auto waybar::modules::Images::update() -> void {
     // for (auto entry : entries_) {
     //   box_.get_style_context()->remove_class(entry.second);
     // }
-    entries_.clear();
+    images_data_.clear();
   }
 
   // set new images from config script
   if (!config_["entries"].empty()) {
-    setEntries(config_["entries"]);
+    setImagesData(config_["entries"]);
   } else if (!config_["exec"].empty()) {
     auto exec = util::command::exec(config_["exec"].asString(), "");
     Json::Value as_json;
@@ -68,22 +68,23 @@ auto waybar::modules::Images::update() -> void {
       return;
     }
 
-    setEntries(as_json);
+    setImagesData(as_json);
   } else {
     spdlog::error("no image files provded in config");
     return;
   }
 
   // draw
-  for (auto entry : entries_) {
-    auto path = entry.first;
-    auto status = entry.second;
+  for (auto data : images_data_) {
+    auto path = data.path;
+    auto status = data.status;
 
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
     pixbuf = Gdk::Pixbuf::create_from_file(path, size_, size_);
     Gtk::Image *image = new Gtk::Image();
     image->set_name(path);
     image->get_style_context()->add_class(status);
+    image->set_tooltip_text(data.tooltip);
     box_.pack_start(*image);
     auto name = std::string(image->get_name());
     spdlog::info("added image -> {}:{}", status, path);
@@ -104,15 +105,24 @@ auto waybar::modules::Images::update() -> void {
   AModule::update();
 };
 
-void waybar::modules::Images::setEntries(const Json::Value &cfg_input) {
+void waybar::modules::Images::setImagesData(const Json::Value &cfg_input) {
   for (unsigned int i = 0; i < cfg_input.size(); i++) {
     auto path = cfg_input[i]["path"];
     auto status = cfg_input[i]["status"];
-    if (!path.isString() || !status.isString() ||
+    auto tooltip = cfg_input[i]["tooltip"];
+
+    bool has_tooltip_err = !tooltip.empty() && !tooltip.isString();
+
+    if (!path.isString() || !status.isString() || has_tooltip_err ||
         !Glib::file_test(path.asString(), Glib::FILE_TEST_EXISTS)) {
       spdlog::error("invalid input in images config -> {}", cfg_input);
       return;
     }
-    entries_.push_back(std::make_pair(path.asString(), status.asString()));
+    ImageData data;
+    data.path = path.asString();
+    data.status = status.asString();
+    data.tooltip = !tooltip.empty() ? tooltip.asString() : "";
+
+    images_data_.push_back(data);
   }
 }

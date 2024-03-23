@@ -20,6 +20,12 @@
 
 namespace waybar::modules {
 
+struct ImageData {
+  std::string path;
+  std::string status;
+  std::string tooltip;
+};
+
 class Images : public AModule {
  public:
   Images(const std::string &, const Json::Value &);
@@ -29,11 +35,11 @@ class Images : public AModule {
 
  private:
   void delayWorker();
-  void setEntries(const Json::Value &);
+  void setImagesData(const Json::Value &);
 
   Json::Value config_;
   Gtk::Box box_;
-  std::vector<std::pair<std::string, std::string>> entries_;
+  std::vector<ImageData> images_data_;
   int size_;
   int interval_;
 
