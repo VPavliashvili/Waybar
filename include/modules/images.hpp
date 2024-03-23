@@ -40,6 +40,7 @@ class Images : public AModule {
   Json::Value config_;
   Gtk::Box box_;
   std::vector<ImageData> images_data_;
+  std::vector<std::unique_ptr<Gtk::Image>> gtk_container_;
   int size_;
   int interval_;
 

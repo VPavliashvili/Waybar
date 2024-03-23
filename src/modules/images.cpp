@@ -46,13 +46,10 @@ auto waybar::modules::Images::update() -> void {
     for (auto child : children) {
       box_.remove(*child);
       spdlog::info("child removed with name -> {}", std::string(child->get_name()));
-      delete child;
     }
 
-    // for (auto entry : entries_) {
-    //   box_.get_style_context()->remove_class(entry.second);
-    // }
     images_data_.clear();
+    gtk_container_.clear();
   }
 
   // set new images from config script
@@ -75,32 +72,35 @@ auto waybar::modules::Images::update() -> void {
   }
 
   // draw
-  for (auto data : images_data_) {
+  for (unsigned int i = 0; i < images_data_.size(); i++) {
+    gtk_container_.push_back(std::make_unique<Gtk::Image>());
+    auto data = images_data_[i];
+
     auto path = data.path;
     auto status = data.status;
+    auto tooltip = data.tooltip;
 
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
     pixbuf = Gdk::Pixbuf::create_from_file(path, size_, size_);
-    Gtk::Image *image = new Gtk::Image();
-    image->set_name(path);
-    image->get_style_context()->add_class(status);
-    image->set_tooltip_text(data.tooltip);
-    box_.pack_start(*image);
-    auto name = std::string(image->get_name());
+    gtk_container_[i]->set_name(path);
+    gtk_container_[i]->get_style_context()->add_class(status);
+    gtk_container_[i]->set_tooltip_text(tooltip);
+    box_.pack_start(*(gtk_container_[i]));
     spdlog::info("added image -> {}:{}", status, path);
 
     if (pixbuf) {
-      image->set(pixbuf);
-      image->show();
+      gtk_container_[i]->set(pixbuf);
+      gtk_container_[i]->show();
       box_.get_style_context()->remove_class("empty");
     } else {
-      image->clear();
-      image->hide();
+      gtk_container_[i]->clear();
+      gtk_container_[i]->hide();
       box_.get_style_context()->add_class("empty");
     }
+    spdlog::info("img from ar -> {}", std::string(gtk_container_[i]->get_name()));
   }
 
-  // spdlog::info("children count: {}", box_.get_children().size());
+  spdlog::info("children count: {}", box_.get_children().size());
 
   AModule::update();
 };
