@@ -64,38 +64,67 @@ auto waybar::modules::Images::update() -> void {
     return;
   }
 
-  draw();
+  setupAndDraw();
 
   // spdlog::info("children count: {}", box_.get_children().size());
 
   AModule::update();
 };
 
-void waybar::modules::Images::draw() {
+void waybar::modules::Images::setupAndDraw() {
   for (unsigned int i = 0; i < images_data_.size(); i++) {
-    gtk_container_.push_back(std::make_unique<Gtk::Image>());
+    images_data_[i].img = std::make_shared<Gtk::Image>();
+    images_data_[i].btn = std::make_shared<Gtk::Button>();
+
+    auto img = images_data_[i].img;
     auto data = images_data_[i];
 
     auto path = data.path;
     auto status = data.status;
     auto tooltip = data.tooltip;
+    bool has_onclick = !data.on_click.empty();
 
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
     pixbuf = Gdk::Pixbuf::create_from_file(path, size_, size_);
-    gtk_container_[i]->set_name(path);
-    gtk_container_[i]->get_style_context()->add_class(status);
-    gtk_container_[i]->set_tooltip_text(tooltip);
-    box_.pack_start(*(gtk_container_[i]));
-    spdlog::info("added image -> {}:{}", status, path);
 
-    if (pixbuf) {
-      gtk_container_[i]->set(pixbuf);
-      gtk_container_[i]->show();
-      box_.get_style_context()->remove_class("empty");
+    if (has_onclick) {
+      auto btn = images_data_[i].btn;
+      btn->set_name("button_" + path);
+      btn->get_style_context()->add_class(status);
+      btn->set_tooltip_text(tooltip);
+      btn->set_image(*img);
+      box_.pack_start(*btn);
+
+      btn->add_events(Gdk::BUTTON_PRESS_MASK);
+      btn->signal_clicked().connect(
+          sigc::bind(sigc::mem_fun(*this, &Images::handleClick), data.on_click));
+
+      if (pixbuf) {
+        btn->show_all();
+        img->set(pixbuf);
+        box_.get_style_context()->remove_class("empty");
+      } else {
+        btn->hide();
+        img->clear();
+        img->hide();
+        box_.get_style_context()->add_class("empty");
+      }
     } else {
-      gtk_container_[i]->clear();
-      gtk_container_[i]->hide();
-      box_.get_style_context()->add_class("empty");
+      img->set_name(path);
+      img->get_style_context()->add_class(status);
+      img->set_tooltip_text(tooltip);
+      box_.pack_start(*img);
+      spdlog::info("added image -> {}:{}", status, path);
+
+      if (pixbuf) {
+        img->set(pixbuf);
+        img->show();
+        box_.get_style_context()->remove_class("empty");
+      } else {
+        img->clear();
+        img->hide();
+        box_.get_style_context()->add_class("empty");
+      }
     }
   }
 }
@@ -105,18 +134,21 @@ void waybar::modules::Images::setImagesData(const Json::Value &cfg_input) {
     auto path = cfg_input[i]["path"];
     auto status = cfg_input[i]["status"];
     auto tooltip = cfg_input[i]["tooltip"];
+    auto onclick = cfg_input[i]["on-click"];
 
     bool has_tooltip_err = !tooltip.empty() && !tooltip.isString();
+    bool has_onclick_err = !onclick.empty() && !onclick.isString();
 
-    if (!path.isString() || !status.isString() || has_tooltip_err ||
+    if (!path.isString() || !status.isString() || has_tooltip_err || has_onclick_err ||
         !Glib::file_test(path.asString(), Glib::FILE_TEST_EXISTS)) {
-      spdlog::error("invalid input in images config -> {}", cfg_input);
+      spdlog::error("invalid input in images config -> {}", cfg_input[i]);
       return;
     }
     ImageData data;
     data.path = path.asString();
     data.status = status.asString();
     data.tooltip = !tooltip.empty() ? tooltip.asString() : "";
+    data.on_click = onclick.asString();
 
     images_data_.push_back(data);
   }
@@ -130,5 +162,12 @@ void waybar::modules::Images::resetBoxAndMemory() {
   }
 
   images_data_.clear();
-  gtk_container_.clear();
+}
+
+void waybar::modules::Images::handleClick(const Glib::ustring &data) {
+  auto msg = std::string(data);
+  spdlog::info("command to be executed after clicking on image -> {}", msg);
+
+  auto exec = util::command::exec(data, "");
+  spdlog::info("onclick executed with output -> {}", exec.out);
 }

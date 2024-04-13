@@ -12,8 +12,10 @@
 #include "AModule.hpp"
 #include "glibmm/fileutils.h"
 #include "gtkmm/box.h"
+#include "gtkmm/button.h"
 #include "gtkmm/image.h"
 #include "gtkmm/widget.h"
+#include "sigc++/adaptors/bind.h"
 #include "util/command.hpp"
 #include "util/json.hpp"
 #include "util/sleeper_thread.hpp"
@@ -24,6 +26,9 @@ struct ImageData {
   std::string path;
   std::string status;
   std::string tooltip;
+  std::string on_click;
+  std::shared_ptr<Gtk::Image> img;
+  std::shared_ptr<Gtk::Button> btn;
 };
 
 class Images : public AModule {
@@ -36,13 +41,13 @@ class Images : public AModule {
  private:
   void delayWorker();
   void setImagesData(const Json::Value &);
-  void draw();
+  void setupAndDraw();
   void resetBoxAndMemory();
+  void handleClick(const Glib::ustring &data);
 
   Json::Value config_;
   Gtk::Box box_;
   std::vector<ImageData> images_data_;
-  std::vector<std::unique_ptr<Gtk::Image>> gtk_container_;
   int size_;
   int interval_;
 
