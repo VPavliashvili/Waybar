@@ -92,7 +92,7 @@ libevdev = dependency('libevdev', required: get_option('libevdev'))
 libmpdclient = dependency('libmpdclient', required: get_option('mpd'))
 xkbregistry = dependency('xkbregistry')
 libjack = dependency('jack', required: get_option('jack'))
-libwireplumber = dependency('wireplumber-0.4', required: get_option('wireplumber'))
+libwireplumber = dependency('wireplumber-0.5', required: get_option('wireplumber'))
 
 libsndio = compiler.find_library('sndio', required: get_option('sndio'))
 if libsndio.found()
@@ -295,7 +295,9 @@ endif
 if true
     add_project_arguments('-DHAVE_DWL', language: 'cpp')
     src_files += files('src/modules/dwl/tags.cpp')
+    src_files += files('src/modules/dwl/window.cpp')
     man_files += files('man/waybar-dwl-tags.5.scd')
+    man_files += files('man/waybar-dwl-window.5.scd')
 endif
 
 if true
@@ -348,7 +350,8 @@ if pipewire.found()
     src_files += files(
         'src/modules/privacy/privacy.cpp',
         'src/modules/privacy/privacy_item.cpp',
-        'src/util/pipewire_backend.cpp',
+        'src/util/pipewire/pipewire_backend.cpp',
+        'src/util/pipewire/privacy_node_info.cpp',
     )
     man_files += files('man/waybar-privacy.5.scd')
 endif
@@ -533,6 +536,14 @@ if scdoc.found()
     man_files += configure_file(
         input: 'man/waybar.5.scd.in',
         output: 'waybar.5.scd',
+        configuration: {
+            'sysconfdir': prefix / sysconfdir
+        }
+    )
+
+    man_files += configure_file(
+        input: 'man/waybar-styles.5.scd.in',
+        output: 'waybar-styles.5.scd',
         configuration: {
             'sysconfdir': prefix / sysconfdir
         }

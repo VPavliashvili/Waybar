@@ -87,7 +87,7 @@ waybar::modules::Clock::Clock(const std::string& id, const Json::Value& config)
       fmtMap_.insert({3, config_[kCldPlaceholder]["format"]["today"].asString()});
       cldBaseDay_ =
           year_month_day{
-              floor<days>(zoned_time{current_zone(), system_clock::now()}.get_local_time())}
+              floor<days>(zoned_time{local_zone(), system_clock::now()}.get_local_time())}
               .day();
     } else
       fmtMap_.insert({3, "{}"});
@@ -115,6 +115,7 @@ waybar::modules::Clock::Clock(const std::string& id, const Json::Value& config)
     } else
       cldMonCols_ = 1;
     if (config_[kCldPlaceholder]["on-scroll"].isInt()) {
+      cldShift_ = config_[kCldPlaceholder]["on-scroll"].asInt();
       event_box_.add_events(Gdk::LEAVE_NOTIFY_MASK);
       event_box_.signal_leave_notify_event().connect([this](GdkEventCrossing*) {
         cldCurrShift_ = months{0};
@@ -130,7 +131,7 @@ waybar::modules::Clock::Clock(const std::string& id, const Json::Value& config)
 }
 
 auto waybar::modules::Clock::update() -> void {
-  const auto* tz = tzList_[tzCurrIdx_] != nullptr ? tzList_[tzCurrIdx_] : current_zone();
+  const auto* tz = tzList_[tzCurrIdx_] != nullptr ? tzList_[tzCurrIdx_] : local_zone();
   const zoned_time now{tz, floor<seconds>(system_clock::now())};
 
   label_.set_markup(fmt_lib::vformat(locale_, format_, fmt_lib::make_format_args(now)));
@@ -167,7 +168,7 @@ auto waybar::modules::Clock::getTZtext(sys_seconds now) -> std::string {
   std::stringstream os;
   for (size_t tz_idx{0}; tz_idx < tzList_.size(); ++tz_idx) {
     if (static_cast<int>(tz_idx) == tzCurrIdx_) continue;
-    const auto* tz = tzList_[tz_idx] != nullptr ? tzList_[tz_idx] : current_zone();
+    const auto* tz = tzList_[tz_idx] != nullptr ? tzList_[tz_idx] : local_zone();
     auto zt{zoned_time{tz, now}};
     os << fmt_lib::vformat(locale_, format_, fmt_lib::make_format_args(zt)) << '\n';
   }
@@ -392,6 +393,18 @@ auto waybar::modules::Clock::get_calendar(const year_month_day& today, const yea
   return os.str();
 }
 
+auto waybar::modules::Clock::local_zone() -> const time_zone* {
+  const char* tz_name = getenv("TZ");
+  if (tz_name) {
+    try {
+      return locate_zone(tz_name);
+    } catch (const std::runtime_error& e) {
+      spdlog::warn("Timezone: {0}. {1}", tz_name, e.what());
+    }
+  }
+  return current_zone();
+}
+
 // Actions handler
 auto waybar::modules::Clock::doAction(const std::string& name) -> void {
   if (actionMap_[name]) {
@@ -405,11 +418,12 @@ void waybar::modules::Clock::cldModeSwitch() {
   cldMode_ = (cldMode_ == CldMode::YEAR) ? CldMode::MONTH : CldMode::YEAR;
 }
 void waybar::modules::Clock::cldShift_up() {
-  cldCurrShift_ += (months)((cldMode_ == CldMode::YEAR) ? 12 : 1);
+  cldCurrShift_ += (months)((cldMode_ == CldMode::YEAR) ? 12 : 1) * cldShift_;
 }
 void waybar::modules::Clock::cldShift_down() {
-  cldCurrShift_ -= (months)((cldMode_ == CldMode::YEAR) ? 12 : 1);
+  cldCurrShift_ -= (months)((cldMode_ == CldMode::YEAR) ? 12 : 1) * cldShift_;
 }
+void waybar::modules::Clock::cldShift_reset() { cldCurrShift_ = (months)0; }
 void waybar::modules::Clock::tz_up() {
   const auto tzSize{tzList_.size()};
   if (tzSize == 1) return;

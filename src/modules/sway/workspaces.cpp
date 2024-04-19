@@ -156,7 +156,7 @@ void Workspaces::onCmd(const struct Ipc::ipc_response &res) {
                 if (output.asString() == bar_.output->name) {
                   Json::Value v;
                   v["name"] = p_w_name;
-                  v["output"] = bar_.output->name;
+                  v["target_output"] = bar_.output->name;
                   v["num"] = convertWorkspaceNameToNum(p_w_name);
                   workspaces_.emplace_back(std::move(v));
                   break;
@@ -166,7 +166,7 @@ void Workspaces::onCmd(const struct Ipc::ipc_response &res) {
               // Adding to all outputs
               Json::Value v;
               v["name"] = p_w_name;
-              v["output"] = "";
+              v["target_output"] = "";
               v["num"] = convertWorkspaceNameToNum(p_w_name);
               workspaces_.emplace_back(std::move(v));
             }
@@ -250,9 +250,6 @@ bool Workspaces::filterButtons() {
 }
 
 bool Workspaces::hasFlag(const Json::Value &node, const std::string &flag) {
-  if (!node[flag].isBool()) {
-    return false;
-  }
   if (node[flag].asBool()) {
     return true;
   }
@@ -261,11 +258,14 @@ bool Workspaces::hasFlag(const Json::Value &node, const std::string &flag) {
                   [&](auto const &e) { return hasFlag(e, flag); })) {
     return true;
   }
+  if (std::any_of(node["floating_nodes"].begin(), node["floating_nodes"].end(),
+                  [&](auto const &e) { return hasFlag(e, flag); })) {
+    return true;
+  }
   return false;
 }
 
 void Workspaces::updateWindows(const Json::Value &node, std::string &windows) {
-  auto format = config_["window-format"].asString();
   if ((node["type"].asString() == "con" || node["type"].asString() == "floating_con") &&
       node["name"].isString()) {
     std::string title = g_markup_escape_text(node["name"].asString().c_str(), -1);
@@ -298,12 +298,13 @@ auto Workspaces::update() -> void {
     if (needReorder) {
       box_.reorder_child(button, it - workspaces_.begin());
     }
+    bool noNodes = (*it)["nodes"].empty() && (*it)["floating_nodes"].empty();
     if (hasFlag((*it), "focused")) {
       button.get_style_context()->add_class("focused");
     } else {
       button.get_style_context()->remove_class("focused");
     }
-    if (hasFlag((*it), "visible")) {
+    if (hasFlag((*it), "visible") || ((*it)["output"].isString() && noNodes)) {
       button.get_style_context()->add_class("visible");
     } else {
       button.get_style_context()->remove_class("visible");
@@ -313,10 +314,15 @@ auto Workspaces::update() -> void {
     } else {
       button.get_style_context()->remove_class("urgent");
     }
-    if (hasFlag((*it), "target_output")) {
+    if ((*it)["target_output"].isString()) {
       button.get_style_context()->add_class("persistent");
     } else {
       button.get_style_context()->remove_class("persistent");
+    }
+    if (noNodes) {
+      button.get_style_context()->add_class("empty");
+    } else {
+      button.get_style_context()->remove_class("empty");
     }
     if ((*it)["output"].isString()) {
       if (((*it)["output"].asString()) == bar_.output->name) {
@@ -400,7 +406,7 @@ std::string Workspaces::getIcon(const std::string &name, const Json::Value &node
       }
     }
     if (key == "focused" || key == "urgent") {
-      if (config_["format-icons"][key].isString() && node[key].asBool()) {
+      if (config_["format-icons"][key].isString() && hasFlag(node, key)) {
         return config_["format-icons"][key].asString();
       }
     } else if (config_["format-icons"]["persistent"].isString() &&
@@ -428,9 +434,16 @@ bool Workspaces::handleScroll(GdkEventScroll *e) {
   }
   std::string name;
   {
+    bool alloutputs = config_["all-outputs"].asBool();
     std::lock_guard<std::mutex> lock(mutex_);
-    auto it = std::find_if(workspaces_.begin(), workspaces_.end(),
-                           [](const auto &workspace) { return hasFlag(workspace, "focused"); });
+    auto it =
+        std::find_if(workspaces_.begin(), workspaces_.end(), [alloutputs](const auto &workspace) {
+          if (alloutputs) {
+            return hasFlag(workspace, "focused");
+          }
+          bool noNodes = workspace["nodes"].empty() && workspace["floating_nodes"].empty();
+          return hasFlag(workspace, "visible") || (workspace["output"].isString() && noNodes);
+        });
     if (it == workspaces_.end()) {
       return true;
     }

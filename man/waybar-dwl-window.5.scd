@@ -1,21 +1,21 @@
-waybar-hyprland-submap(5)
+waybar-dwl-window(5)
 
 # NAME
 
-waybar - hyprland submap module
+waybar - dwl window module
 
 # DESCRIPTION
 
-The *submap* module displays the currently active submap similar to *sway/mode*.
+The *window* module displays the title of the currently focused window in DWL
 
 # CONFIGURATION
 
-Addressed by *hyprland/submap*
+Addressed by *dwl/window*
 
 *format*: ++
 	typeof: string ++
-	default: {} ++
-	The format, how information should be displayed. On {} the currently active submap is displayed.
+	default: {title} ++
+	The format, how information should be displayed.
 
 *rotate*: ++
 	typeof: integer ++
@@ -70,28 +70,49 @@ Addressed by *hyprland/submap*
 	default: true ++
 	Option to disable tooltip on hover.
 
-*always-on*: ++
+*rewrite*: ++
+	typeof: object ++
+	Rules to rewrite the module format output. See *rewrite rules*.
+
+*icon*: ++
 	typeof: bool ++
 	default: false ++
-	Option to display the widget even when there's no active submap.
+	Option to hide the application icon.
 
-*default-submap* ++
-	typeof: string ++
-	default: Default ++
-	Option to set the submap name to display when not in an active submap.
+*icon-size*: ++
+	typeof: integer ++
+	default: 24 ++
+	Option to change the size of the application icon.
 
+# FORMAT REPLACEMENTS
+
+*{title}*: The title of the focused window.
+
+*{app_id}*: The app_id of the focused window.
+
+*{layout}*: The layout of the focused window.
+
+# REWRITE RULES
+
+*rewrite* is an object where keys are regular expressions and values are
+rewrite rules if the expression matches. Rules may contain references to
+captures of the expression.
+
+Regular expression and replacement follow ECMA-script rules.
+
+If no expression matches, the format output is left unchanged.
+
+Invalid expressions (e.g., mismatched parentheses) are skipped.
 
 # EXAMPLES
 
 ```
-"hyprland/submap": {
-	"format": "✌️ {}",
-	"max-length": 8,
-	"tooltip": false
+"dwl/window": {
+	"format": "{}",
+	"max-length": 50,
+	"rewrite": {
+		"(.*) - Mozilla Firefox": "🌎 $1",
+		"(.*) - zsh": "> [$1]"
+	}
 }
 ```
-
-# STYLE
-
-- *#submap*
-- *#submap.<name>*

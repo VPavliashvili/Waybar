@@ -41,6 +41,7 @@ class Clock final : public ALabel {
   const int cldMonColLen_{20};   // calendar month column length
   WS cldWPos_{WS::HIDDEN};       // calendar week side to print
   months cldCurrShift_{0};       // calendar months shift
+  int cldShift_{1};              // calendar months shift factor
   year_month_day cldYearShift_;  // calendar Year mode. Cached ymd
   std::string cldYearCached_;    // calendar Year mode. Cached calendar
   year_month cldMonShift_;       // calendar Month mode. Cached ym
@@ -50,6 +51,9 @@ class Clock final : public ALabel {
   CldMode cldMode_{CldMode::MONTH};
   auto get_calendar(const year_month_day& today, const year_month_day& ymd, const time_zone* tz)
       -> const std::string;
+
+  // get local time zone
+  auto local_zone() -> const time_zone*;
 
   // time zoned time in tooltip
   const bool tzInTooltip_;                // if need to print time zones text
@@ -69,6 +73,7 @@ class Clock final : public ALabel {
   void cldModeSwitch();
   void cldShift_up();
   void cldShift_down();
+  void cldShift_reset();
   void tz_up();
   void tz_down();
   // Module Action Map
@@ -76,6 +81,7 @@ class Clock final : public ALabel {
       {"mode", &waybar::modules::Clock::cldModeSwitch},
       {"shift_up", &waybar::modules::Clock::cldShift_up},
       {"shift_down", &waybar::modules::Clock::cldShift_down},
+      {"shift_reset", &waybar::modules::Clock::cldShift_reset},
       {"tz_up", &waybar::modules::Clock::tz_up},
       {"tz_down", &waybar::modules::Clock::tz_down}};
 };

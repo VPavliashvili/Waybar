@@ -85,6 +85,7 @@ class Workspace {
   void setVisible(bool value = true) { m_isVisible = value; };
   void setWindows(uint value) { m_windows = value; };
   void setName(std::string const& value) { m_name = value; };
+  void setOutput(std::string const& value) { m_output = value; };
   bool containsWindow(WindowAddress const& addr) const { return m_windowMap.contains(addr); }
   void insertWindow(WindowCreationPayload create_window_paylod);
   std::string removeWindow(WindowAddress const& addr);
@@ -126,6 +127,7 @@ class Workspaces : public AModule, public EventHandler {
   auto allOutputs() const -> bool { return m_allOutputs; }
   auto showSpecial() const -> bool { return m_showSpecial; }
   auto activeOnly() const -> bool { return m_activeOnly; }
+  auto moveToMonitor() const -> bool { return m_moveToMonitor; }
 
   auto getBarOutput() const -> std::string { return m_bar.output->name; }
 
@@ -182,6 +184,7 @@ class Workspaces : public AModule, public EventHandler {
   bool m_allOutputs = false;
   bool m_showSpecial = false;
   bool m_activeOnly = false;
+  bool m_moveToMonitor = false;
   Json::Value m_persistentWorkspaceConfig;
 
   // Map for windows stored in workspaces not present in the current bar.
