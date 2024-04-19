@@ -80,7 +80,7 @@ void waybar::modules::Images::setupAndDraw() {
     auto data = images_data_[i];
 
     auto path = data.path;
-    auto status = data.status;
+    auto marker = data.marker;
     auto tooltip = data.tooltip;
     bool has_onclick = !data.on_click.empty();
 
@@ -90,7 +90,7 @@ void waybar::modules::Images::setupAndDraw() {
     if (has_onclick) {
       auto btn = images_data_[i].btn;
       btn->set_name("button_" + path);
-      btn->get_style_context()->add_class(status);
+      btn->get_style_context()->add_class(marker);
       btn->set_tooltip_text(tooltip);
       btn->set_image(*img);
       box_.pack_start(*btn);
@@ -111,10 +111,10 @@ void waybar::modules::Images::setupAndDraw() {
       }
     } else {
       img->set_name(path);
-      img->get_style_context()->add_class(status);
+      img->get_style_context()->add_class(marker);
       img->set_tooltip_text(tooltip);
       box_.pack_start(*img);
-      spdlog::info("added image -> {}:{}", status, path);
+      spdlog::info("added image -> {}:{}", marker, path);
 
       if (pixbuf) {
         img->set(pixbuf);
@@ -132,21 +132,21 @@ void waybar::modules::Images::setupAndDraw() {
 void waybar::modules::Images::setImagesData(const Json::Value &cfg_input) {
   for (unsigned int i = 0; i < cfg_input.size(); i++) {
     auto path = cfg_input[i]["path"];
-    auto status = cfg_input[i]["status"];
+    auto marker = cfg_input[i]["marker"];
     auto tooltip = cfg_input[i]["tooltip"];
     auto onclick = cfg_input[i]["on-click"];
 
     bool has_tooltip_err = !tooltip.empty() && !tooltip.isString();
     bool has_onclick_err = !onclick.empty() && !onclick.isString();
 
-    if (!path.isString() || !status.isString() || has_tooltip_err || has_onclick_err ||
+    if (!path.isString() || !marker.isString() || has_tooltip_err || has_onclick_err ||
         !Glib::file_test(path.asString(), Glib::FILE_TEST_EXISTS)) {
       spdlog::error("invalid input in images config -> {}", cfg_input[i]);
       return;
     }
     ImageData data;
     data.path = path.asString();
-    data.status = status.asString();
+    data.marker = marker.asString();
     data.tooltip = !tooltip.empty() ? tooltip.asString() : "";
     data.on_click = onclick.asString();
 

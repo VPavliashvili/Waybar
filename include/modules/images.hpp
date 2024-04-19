@@ -24,7 +24,7 @@ namespace waybar::modules {
 
 struct ImageData {
   std::string path;
-  std::string status;
+  std::string marker;
   std::string tooltip;
   std::string on_click;
   std::shared_ptr<Gtk::Image> img;
