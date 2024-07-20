@@ -2,7 +2,7 @@
 
 waybar::modules::Image::Image(const std::string& id, const Json::Value& config)
     : AModule(config, "image", id) {
-  strategy_ = getStrategy(id, config, MODULE_CLASS, event_box_);
+  strategy_ = getStrategy(id, config, MODULE_CLASS, event_box_, tooltipEnabled());
 
   interval_ = config_["interval"].asInt();
 
@@ -13,11 +13,11 @@ waybar::modules::Image::Image(const std::string& id, const Json::Value& config)
   delayWorker();
 }
 
-auto waybar::modules::Image::getStrategy(const std::string& id, const Json::Value& cfg,
-                                         const std::string& module, Gtk::EventBox& evbox)
-    -> std::unique_ptr<waybar::modules::image::IStrategy> {
+auto waybar::modules::Image::getStrategy(
+    const std::string& id, const Json::Value& cfg, const std::string& module, Gtk::EventBox& evbox,
+    bool hasTooltip) -> std::unique_ptr<waybar::modules::image::IStrategy> {
   std::unique_ptr<waybar::modules::image::IStrategy> strat =
-      std::make_unique<waybar::modules::image::ImageStrategy>(id, cfg, module, evbox);
+      std::make_unique<waybar::modules::image::ImageStrategy>(id, cfg, module, evbox, hasTooltip);
 
   return strat;
 }
@@ -39,60 +39,16 @@ void waybar::modules::Image::refresh(int sig) {
 auto waybar::modules::Image::update() -> void {
   strategy_->update();
 
-  // Glib::RefPtr<Gdk::Pixbuf> pixbuf;
-  // if (config_["path"].isString()) {
-  //   path_ = config_["path"].asString();
-  // } else if (config_["exec"].isString()) {
-  //   output_ = util::command::exec(config_["exec"].asString(), "");
-  //   parseOutputRaw();
-  // } else {
-  //   path_ = "";
-  // }
-  // if (Glib::file_test(path_, Glib::FILE_TEST_EXISTS))
-  //   pixbuf = Gdk::Pixbuf::create_from_file(path_, size_, size_);
-  // else
-  //   pixbuf = {};
-  //
-  // if (pixbuf) {
-  //   if (tooltipEnabled() && !tooltip_.empty()) {
-  //     if (box_.get_tooltip_markup() != tooltip_) {
-  //       box_.set_tooltip_markup(tooltip_);
-  //     }
-  //   }
-  //   image_.set(pixbuf);
-  //   image_.show();
-  //   box_.get_style_context()->remove_class("empty");
-  // } else {
-  //   image_.clear();
-  //   image_.hide();
-  //   box_.get_style_context()->add_class("empty");
-  // }
-
   AModule::update();
 }
-
-// void waybar::modules::Image::parseOutputRaw() {
-// std::istringstream output(output_.out);
-// std::string line;
-// int i = 0;
-// while (getline(output, line)) {
-//   if (i == 0) {
-//     path_ = line;
-//   } else if (i == 1) {
-//     tooltip_ = line;
-//   } else {
-//     break;
-//   }
-//   i++;
-// }
-// }
 
 waybar::modules::image::ImageStrategy::ImageStrategy(const std::string& id,
                                                      const Json::Value& config,
                                                      const std::string& module,
-                                                     Gtk::EventBox& evbox)
+                                                     Gtk::EventBox& evbox, bool tooltipEnabled)
     : waybar::modules::image::IStrategy(), box_(Gtk::ORIENTATION_HORIZONTAL, 0) {
   config_ = config;
+  hasTooltip_ = tooltipEnabled;
 
   box_.pack_start(image_);
   box_.set_name("image");
@@ -108,4 +64,49 @@ waybar::modules::image::ImageStrategy::ImageStrategy(const std::string& id,
   }
 }
 
-void waybar::modules::image::ImageStrategy::update() { spdlog::info("ImageStrategy update() run"); }
+void waybar::modules::image::ImageStrategy::update() {
+  Glib::RefPtr<Gdk::Pixbuf> pixbuf;
+  if (config_["path"].isString()) {
+    path_ = config_["path"].asString();
+  } else if (config_["exec"].isString()) {
+    output_ = util::command::exec(config_["exec"].asString(), "");
+    parseOutputRaw();
+  } else {
+    path_ = "";
+  }
+  if (Glib::file_test(path_, Glib::FILE_TEST_EXISTS))
+    pixbuf = Gdk::Pixbuf::create_from_file(path_, size_, size_);
+  else
+    pixbuf = {};
+
+  if (pixbuf) {
+    if (hasTooltip_ && !tooltip_.empty()) {
+      if (box_.get_tooltip_markup() != tooltip_) {
+        box_.set_tooltip_markup(tooltip_);
+      }
+    }
+    image_.set(pixbuf);
+    image_.show();
+    box_.get_style_context()->remove_class("empty");
+  } else {
+    image_.clear();
+    image_.hide();
+    box_.get_style_context()->add_class("empty");
+  }
+}
+
+void waybar::modules::image::ImageStrategy::parseOutputRaw() {
+  std::istringstream output(output_.out);
+  std::string line;
+  int i = 0;
+  while (getline(output, line)) {
+    if (i == 0) {
+      path_ = line;
+    } else if (i == 1) {
+      tooltip_ = line;
+    } else {
+      break;
+    }
+    i++;
+  }
+}

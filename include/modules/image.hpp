@@ -24,7 +24,7 @@ class IStrategy {
 
 class ImageStrategy : public IStrategy {
  public:
-  ImageStrategy(const std::string&, const Json::Value&, const std::string&, Gtk::EventBox&);
+  ImageStrategy(const std::string&, const Json::Value&, const std::string&, Gtk::EventBox&, bool);
   ~ImageStrategy() override = default;
   void update() override;
 
@@ -38,6 +38,7 @@ class ImageStrategy : public IStrategy {
   std::string tooltip_;
   int size_;
   Gtk::Box box_;
+  bool hasTooltip_;
 };
 
 }  // namespace image
@@ -54,15 +55,9 @@ class Image : public AModule {
   void handleEvent();
   // void parseOutputRaw();
   static std::unique_ptr<image::IStrategy> getStrategy(const std::string&, const Json::Value&,
-                                                       const std::string&, Gtk::EventBox&);
+                                                       const std::string&, Gtk::EventBox&, bool);
 
-  // Gtk::Box box_;
-  // Gtk::Image image_;
-  // std::string path_;
-  // std::string tooltip_;
-  // int size_;
   int interval_;
-  // util::command::res output_;
   std::unique_ptr<image::IStrategy> strategy_;
   util::SleeperThread thread_;
 };
