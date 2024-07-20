@@ -14,6 +14,34 @@
 
 namespace waybar::modules {
 
+namespace image {
+
+class IStrategy {
+ public:
+  virtual ~IStrategy() = default;
+  virtual void update() = 0;
+};
+
+class ImageStrategy : public IStrategy {
+ public:
+  ImageStrategy(const std::string&, const Json::Value&, const std::string&, Gtk::EventBox&);
+  ~ImageStrategy() override = default;
+  void update() override;
+
+ private:
+  void parseOutputRaw();
+
+  util::command::res output_;
+  Json::Value config_;
+  Gtk::Image image_;
+  std::string path_;
+  std::string tooltip_;
+  int size_;
+  Gtk::Box box_;
+};
+
+}  // namespace image
+
 class Image : public AModule {
  public:
   Image(const std::string&, const Json::Value&);
@@ -24,16 +52,18 @@ class Image : public AModule {
  private:
   void delayWorker();
   void handleEvent();
-  void parseOutputRaw();
+  // void parseOutputRaw();
+  static std::unique_ptr<image::IStrategy> getStrategy(const std::string&, const Json::Value&,
+                                                       const std::string&, Gtk::EventBox&);
 
-  Gtk::Box box_;
-  Gtk::Image image_;
-  std::string path_;
-  std::string tooltip_;
-  int size_;
+  // Gtk::Box box_;
+  // Gtk::Image image_;
+  // std::string path_;
+  // std::string tooltip_;
+  // int size_;
   int interval_;
-  util::command::res output_;
-
+  // util::command::res output_;
+  std::unique_ptr<image::IStrategy> strategy_;
   util::SleeperThread thread_;
 };
 
